@@ -1,24 +1,14 @@
 {
-  "name": "react-native-cn-tts",
-  "version": "1.0.2",
-  "description": "React Native TTS for Chinese",
+  "name": "react-native-cn-tts-ym",
+  "version": "0.0.19",
+  "description": "Batteries-included form for react and react native",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "tts",
-    "text-to-speech",
-    "chinese tts"
-  ],
-  "author": "symous",
+  "author": "shizhan",
   "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Symous/react-native-cn-tts.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Symous/react-native-cn-tts/issues"
-  },
-  "homepage": "https://github.com/Symous/react-native-cn-tts#readme"
+  "publishConfig": {
+    "registry": "http://192.168.1.101:8081/repository/npm-hosted/"
+  }
 }

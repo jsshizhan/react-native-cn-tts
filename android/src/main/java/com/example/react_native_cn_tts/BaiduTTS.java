@@ -3,17 +3,23 @@ package com.example.react_native_cn_tts;
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
-
+import android.media.AudioManager;
 import com.baidu.tts.auth.AuthInfo;
 import com.baidu.tts.client.SpeechError;
 import com.baidu.tts.client.SpeechSynthesizer;
 import com.baidu.tts.client.SpeechSynthesizerListener;
 import com.baidu.tts.client.TtsMode;
-
+import android.content.pm.PackageManager;
+import android.Manifest;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.app.ActivityCompat;
 
 /**
  * Created by Symous on 2017-07-25.
@@ -21,9 +27,16 @@ import java.io.InputStream;
 
 public class BaiduTTS implements SpeechSynthesizerListener{
 
-    String textFile = "bd_etts_ch_text.dat";
-    String speechFile = "bd_etts_ch_speech_female.dat";
-    TTSModule ttsModule;
+    private TtsMode ttsMode = TtsMode.ONLINE;
+     // ================选择TtsMode.ONLINE  不需要设置以下参数; 选择TtsMode.MIX 需要设置下面2个离线资源文件的路径
+    private static final String TEMP_DIR = "/sdcard/baiduTTS"; // 重要！请手动将assets目录下的3个dat 文件复制到该目录
+
+    // 请确保该PATH下有这个文件
+    private static final String TEXT_FILENAME = TEMP_DIR + "/" + "bd_etts_text.dat";
+
+    // 请确保该PATH下有这个文件 ，m15是离线男声
+    private static final String MODEL_FILENAME =
+            TEMP_DIR + "/" + "bd_etts_common_speech_m15_mand_eng_high_am-mix_v3.0.0_20170505.dat";
     //String appId = "10716869",apiKey="5xuBepa3nHKnNhygRi0HfHlp",secKey="e0ee91d8555e2b15a64110d8c4440d74";
     // 语音合成客户端
     private SpeechSynthesizer mSpeechSynthesizer;
@@ -32,50 +45,108 @@ public class BaiduTTS implements SpeechSynthesizerListener{
     private SpeechSynthesizerListener callBack;
 
     public BaiduTTS(Context context, SpeechSynthesizerListener callBack) throws IOException {
-
-        if(!new File(path+textFile).exists() || !new File(path+speechFile).exists()){
-            copySpeechFileFromAssert(context,"data",path);
+        boolean isMix = ttsMode.equals(TtsMode.MIX);
+        boolean isSuccess;
+        if (isMix) {
+            // 检查2个离线资源是否可读
+            isSuccess = checkOfflineResources();
+            if (!isSuccess) {
+                return;
+            } else {
+                System.out.println("离线资源存在并且可读, 目录：" + TEMP_DIR);
+            }
         }
-
         // 获取语音合成对象实例
         mSpeechSynthesizer = SpeechSynthesizer.getInstance();
         // 设置context
         mSpeechSynthesizer.setContext(context);
         // 设置语音合成状态监听器
         mSpeechSynthesizer.setSpeechSynthesizerListener(this);
-        // 设置语音合成文本模型文件
-        mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_TEXT_MODEL_FILE, path+textFile);
-        // 设置语音合成声音模型文件
-        mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_SPEECH_MODEL_FILE, path+speechFile);
-        // 设置语音合成声音授权文件
-        //mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_LICENCE_FILE, "your_licence_path");
         this.callBack = callBack;
     }
 
+    /**
+     * 检查 TEXT_FILENAME, MODEL_FILENAME 这2个文件是否存在，不存在请自行从assets目录里手动复制
+     *
+     * @return
+     */
+    private boolean checkOfflineResources() {
+        String[] filenames = {TEXT_FILENAME, MODEL_FILENAME};
+        for (String path : filenames) {
+            File f = new File(path);
+            if (!f.canRead()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public void speak(String content){
-        mSpeechSynthesizer.speak(content);
+        if (mSpeechSynthesizer == null) {
+            return;
+        }
+        int result = mSpeechSynthesizer.speak(content);
+        checkResult(result, "speak");
     }
     public void pause(){mSpeechSynthesizer.pause();}
     public void resume(){mSpeechSynthesizer.resume();}
     public void stop(){ mSpeechSynthesizer.stop();}
 
 
-    public boolean initTts(String appID,String apiKey,String secKey){
+    public void initTts(String appID,String apiKey,String secKey){
+        boolean isMix = ttsMode.equals(TtsMode.MIX);
+        boolean isSuccess;
         // 设置离线语音合成授权，需要填入从百度语音官网申请的app_id
-        mSpeechSynthesizer.setAppId(appID);
+        int result = mSpeechSynthesizer.setAppId(appID);
+        checkResult(result, "setAppId");
         // 设置在线语音合成授权，需要填入从百度语音官网申请的api_key和secret_key
-        mSpeechSynthesizer.setApiKey(apiKey,secKey);
-        // 获取语音合成授权信息
-        AuthInfo authInfo = mSpeechSynthesizer.auth(TtsMode.MIX);
-        // 判断授权信息是否正确，如果正确则初始化语音合成器并开始语音合成，如果失败则做错误处理
-        if (authInfo.isSuccess()) {
-            int result = mSpeechSynthesizer.initTts(TtsMode.MIX);
-            Log.d("cntts","init successfully :"+result);
-            return true;
-        } else {
-            String errMsg = authInfo.getTtsError().getDetailMessage();
-            Log.d("cntts",errMsg);
+        result = mSpeechSynthesizer.setApiKey(apiKey,secKey);
+        checkResult(result, "setApiKey");
+        // 4. 支持离线的话，需要设置离线模型
+        if (isMix) {
+            // 检查离线授权文件是否下载成功，离线授权文件联网时SDK自动下载管理，有效期3年，3年后的最后一个月自动更新。
+            isSuccess = checkAuth();
+            if (!isSuccess) {
+                return;
+            }
+            // 文本模型文件路径 (离线引擎使用)， 注意TEXT_FILENAME必须存在并且可读
+            mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_TEXT_MODEL_FILE, TEXT_FILENAME);
+            // 声学模型文件路径 (离线引擎使用)， 注意TEXT_FILENAME必须存在并且可读
+            mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_TTS_SPEECH_MODEL_FILE, MODEL_FILENAME);
+        }
+        mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_MIX_MODE, SpeechSynthesizer.MIX_MODE_DEFAULT);
+        mSpeechSynthesizer.setAudioStreamType(AudioManager.MODE_IN_CALL);
+         // x. 额外 ： 自动so文件是否复制正确及上面设置的参数
+        Map<String, String> params = new HashMap<>();
+        // 复制下上面的 mSpeechSynthesizer.setParam参数
+        // 上线时请删除AutoCheck的调用
+        if (isMix) {
+            params.put(SpeechSynthesizer.PARAM_TTS_TEXT_MODEL_FILE, TEXT_FILENAME);
+            params.put(SpeechSynthesizer.PARAM_TTS_SPEECH_MODEL_FILE, MODEL_FILENAME);
+        }
+        result = mSpeechSynthesizer.initTts(ttsMode);
+        checkResult(result, "initTts");
+    }
+
+    private void checkResult(int result, String method) {
+        if (result != 0) {
+            System.out.println("error code :" + result + " method:" + method + ", 错误码文档:http://yuyin.baidu.com/docs/tts/122 ");
+        }
+    }
+
+    /**
+     * 检查appId ak sk 是否填写正确，另外检查官网应用内设置的包名是否与运行时的包名一致。本demo的包名定义在build.gradle文件中
+     *
+     * @return
+     */
+    private boolean checkAuth() {
+        AuthInfo authInfo = mSpeechSynthesizer.auth(ttsMode);
+        if (!authInfo.isSuccess()) {
+            // 离线授权需要网站上的应用填写包名。本demo的包名是com.baidu.tts.sample，定义在build.gradle中
+            String errorMsg = authInfo.getTtsError().getDetailMessage();
             return false;
+        } else {
+            return true;
         }
     }
 
@@ -115,30 +186,4 @@ public class BaiduTTS implements SpeechSynthesizerListener{
 
     }
 
-    public void copySpeechFileFromAssert(Context context,String oldPath,String newPath) {
-        try {
-            String fileNames[] = context.getAssets().list(oldPath);//获取assets目录下的所有文件及目录名
-            if (fileNames.length > 0) {//如果是目录
-                File file = new File(newPath);
-                file.mkdirs();//如果文件夹不存在，则递归
-                for (String fileName : fileNames) {
-                    copySpeechFileFromAssert(context,oldPath + "/" + fileName,newPath+"/"+fileName);
-                }
-            } else {//如果是文件
-                InputStream is = context.getAssets().open(oldPath);
-                FileOutputStream fos = new FileOutputStream(new File(newPath));
-                byte[] buffer = new byte[1024];
-                int byteCount=0;
-                while((byteCount=is.read(buffer))!=-1) {//循环从输入流读取 buffer字节
-                    fos.write(buffer, 0, byteCount);//将读取的输入流写入到输出流
-                }
-                fos.flush();//刷新缓冲区
-                is.close();
-                fos.close();
-            }
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
 }
