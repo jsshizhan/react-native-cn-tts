@@ -9,6 +9,8 @@ import com.baidu.tts.client.SpeechError;
 import com.baidu.tts.client.SpeechSynthesizer;
 import com.baidu.tts.client.SpeechSynthesizerListener;
 import com.baidu.tts.client.TtsMode;
+import com.facebook.react.bridge.Promise;
+
 import android.content.pm.PackageManager;
 import android.Manifest;
 import java.io.File;
@@ -81,27 +83,28 @@ public class BaiduTTS implements SpeechSynthesizerListener{
         return true;
     }
 
-    public void speak(String content){
+    public void speak(String content, Promise promise){
         if (mSpeechSynthesizer == null) {
             return;
         }
         int result = mSpeechSynthesizer.speak(content);
-        checkResult(result, "speak");
+        checkResult(result, "speak",promise);
+        promise.resolve(null);
     }
     public void pause(){mSpeechSynthesizer.pause();}
     public void resume(){mSpeechSynthesizer.resume();}
     public void stop(){ mSpeechSynthesizer.stop();}
 
 
-    public void initTts(String appID,String apiKey,String secKey){
+    public void initTts(String appID,String apiKey,String secKey, Promise promise){
         boolean isMix = ttsMode.equals(TtsMode.MIX);
         boolean isSuccess;
         // 设置离线语音合成授权，需要填入从百度语音官网申请的app_id
         int result = mSpeechSynthesizer.setAppId(appID);
-        checkResult(result, "setAppId");
+        checkResult(result, "setAppId",promise);
         // 设置在线语音合成授权，需要填入从百度语音官网申请的api_key和secret_key
         result = mSpeechSynthesizer.setApiKey(apiKey,secKey);
-        checkResult(result, "setApiKey");
+        checkResult(result, "setApiKey",promise);
         // 4. 支持离线的话，需要设置离线模型
         if (isMix) {
             // 检查离线授权文件是否下载成功，离线授权文件联网时SDK自动下载管理，有效期3年，3年后的最后一个月自动更新。
@@ -125,12 +128,14 @@ public class BaiduTTS implements SpeechSynthesizerListener{
             params.put(SpeechSynthesizer.PARAM_TTS_SPEECH_MODEL_FILE, MODEL_FILENAME);
         }
         result = mSpeechSynthesizer.initTts(ttsMode);
-        checkResult(result, "initTts");
+        checkResult(result, "initTts",promise);
+        promise.resolve(null);
     }
 
-    private void checkResult(int result, String method) {
+    private void checkResult(int result, String method, Promise promise) {
         if (result != 0) {
-            System.out.println("error code :" + result + " method:" + method + ", 错误码文档:http://yuyin.baidu.com/docs/tts/122 ");
+            promise.reject(result+"",method);
+            System.out.println("错误码文档:http://yuyin.baidu.com/docs/tts/122 ");
         }
     }
 

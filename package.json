@@ -1,6 +1,6 @@
 {
   "name": "react-native-cn-tts-ym",
-  "version": "0.0.19",
+  "version": "0.0.21",
   "description": "Batteries-included form for react and react native",
   "main": "index.js",
   "scripts": {

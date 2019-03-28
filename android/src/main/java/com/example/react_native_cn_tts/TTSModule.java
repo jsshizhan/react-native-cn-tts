@@ -40,11 +40,11 @@ public class TTSModule extends ReactContextBaseJavaModule implements SpeechSynth
 
     @ReactMethod
     public void init(String appID, String apiKey, String secKey, Promise promise){
-        baiduTTS.initTts(appID,apiKey,secKey);
+        baiduTTS.initTts(appID,apiKey,secKey,promise);
     }
     @ReactMethod
-    public void speak(String content){
-        baiduTTS.speak(content);
+    public void speak(String content, Promise promise){
+        baiduTTS.speak(content,promise);
     }
 
     @ReactMethod
