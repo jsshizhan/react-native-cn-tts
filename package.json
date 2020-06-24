@@ -1,6 +1,6 @@
 {
   "name": "react-native-cn-tts-ym",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "Batteries-included form for react and react native",
   "main": "index.js",
   "scripts": {
@@ -9,6 +9,6 @@
   "author": "shizhan",
   "license": "ISC",
   "publishConfig": {
-    "registry": "http://192.168.1.101:8081/repository/npm-hosted/"
+    "registry": "http://192.168.102.101:8081/repository/npm-hosted/"
   }
 }

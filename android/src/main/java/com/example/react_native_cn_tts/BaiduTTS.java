@@ -20,8 +20,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.app.ActivityCompat;
 
 /**
  * Created by Symous on 2017-07-25.
