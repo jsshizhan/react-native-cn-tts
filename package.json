@@ -7,8 +7,5 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "shizhan",
-  "license": "ISC",
-  "publishConfig": {
-    "registry": "http://192.168.102.101:8081/repository/npm-hosted/"
-  }
+  "license": "ISC"
 }
